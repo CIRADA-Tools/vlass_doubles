@@ -8,6 +8,8 @@ sys.path.append('LR_host_finding')
 from dragn_hunter import *
 from find_hosts_lr import *
 from get_redshifts import *
+from fetch_z import *
+from clean_catalog import *
 
 
 ######################################################
@@ -535,7 +537,7 @@ def z_targets(sources, hosts, namecol='AllWISE',
     sources = sources[~sources[namecol].mask]
     
     ###join tables
-    targets = join(sources[[namecol]], hosts[[namecol, acol, dcol]])
+    targets = join(sources[[namecol]], hosts[[namecol, acol, dcol]], keys=namecol, join_type='inner')
     
     return targets
 
@@ -641,7 +643,7 @@ if __name__ == '__main__':
                       radio_beam_size=3, cal_errors=double_poscal)
     
         ###need to add host info to sources for final table (and select core where available)
-        lr_results=Table.read('/'.join([args.outdir, 'all_lr_matches.fits']))
+        lr_results=Table.read('/'.join([args.outdir, 'all_LR_matches.fits']))
         main_output = finalise_cats(dragns=data['dragns'], sources=data['sources'],
                                     wise=data['hosts'], hosts=lr_results, min_p=0.5,
                                     sourcecols=['Name', 'RA', 'DEC', 'Flux', 'E_Flux',
@@ -688,42 +690,25 @@ if __name__ == '__main__':
                         supdir='supplementary_data',
                         dcols=dragncols_out, scols=sourcecols_out,
                         dcoldesc=dragncols_desc, scoldesc=sourccols_desc)
-        ###get redshifts?
+    ###get redshifts?
     if args.get_redshifts==True and args.find_hosts==True:
-        print('')
-        print('Now searching for available redshift measurements')
-        targets = z_targets(sources=data['sources'], hosts=data['hosts'],
-                            namecol=args.host_name, acol=args.host_ra, dcol=args.host_dec)
-        zspec = get_spec_zs(targets, racol=args.host_ra, decol=args.host_dec,
-                            namecol=args.host_name, search_rad=args.z_radius)
-        zphot = query_lsdr8_north_and_south(targets, namecol=args.host_name,
-                                            acol=args.host_ra, dcol=args.host_dec,
-                                            searchrad=args.z_radius)
-        zdata = combine_spec_photo_zs(speczs=zspec, photozs=zphot,
-                                      namecol=args.host_name)
-        
-        ###join with source data
-        sources = main_output['host_ids']
-        skeys = sources[~sources[args.host_name].mask][['Name', args.host_name]]
-        szdat = join(skeys, zdata, keys=args.host_name, join_type='inner')
-        szdat = unique(szdat, 'Name')
-        szdat.remove_column(args.host_name)
-        szdat = join(sources, szdat, keys='Name', join_type='left')
-        zmask = np.isnan(szdat['z'])
-        if type(szdat['z'])==MaskedColumn:
-            zmask = zmask | szdat['z'].mask
-        for zcol in ['z', 'z_err', 'z_type', 'z_survey']:
-            if type(szdat[zcol])==MaskedColumn:
-                szdat[zcol].mask = zmask
-        
-        ###write to file
-        zfilename = '/'.join([args.outdir, 'sources.fits'])
-        szdat.sort('RA')
-        szcols = [i for i in sourcecols_out if i in szdat.colnames]
-        szdat = szdat[szcols]
-        add_col_descriptions(data=szdat, info_dict=sourccols_desc)
-        szdat.write(zfilename, format='fits', overwrite=True)
-        
+        fetch_redshifts(sources=main_output['host_ids'], hosts=data['hosts'],
+                        sourcecols_out=sourcecols_out,
+                        sourccols_desc=sourccols_desc,
+                        z_radius=args.z_radius,
+                        host_name=args.host_name,
+                        acol=args.host_ra,
+                        dcol=args.host_dec,
+                        outname='/'.join([args.outdir, 'sources.fits']))
+    
+    ###cleanup catalog
+    cleanup(dragns=Table.read('/'.join([args.outdir, 'dragns.fits'])),
+            sources=Table.read('/'.join([args.outdir, 'sources.fits'])),
+            hosts=Table.read('/'.join([args.outdir, 'supplementary_data/hosts.fits'])),
+            backup_data=False, hname='AllWISE', hmbackup='Sep_AllWISE',
+            dfilename='/'.join([args.outdir, 'dragns.fits']),
+            sfilename='/'.join([args.outdir, 'sources.fits']))
+    
     ###print time taken -- for testing purposes
     if args.cirada_preprocess == True:
         if args.radio_cat == temp_compfile:

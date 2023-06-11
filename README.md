@@ -1,7 +1,7 @@
-# vlass_doubles
 # Code to find double sources in VLASS
 
-This script is a wrapper for two main algorithms:
+This readme gives a brief, high level, overview of the CIRADA code to used to find DRAGNs and single-component radio sources in VLASS plus their AllWISE host IDs. If you find the code or its resultant data products helpful in your research we request that you cite the article _"A Quick Look at the 3GHz Radio Sky. II. Hunting for DRAGNs in the VLA Sky Survey"_ (Y. A. Gordon et al., 2023, submitted to ApJS, https://arxiv.org/abs/2303.12830), which describes the method and output data in detail. The code acts as a wrapper for two main algorithms:
+
 1. Yjan Gordon's DRAGNhunter (https://github.com/ygordon/dragn_hunter), a code for finding likely double sources in component catalog data. This algorithm was designed using VLASS data and is also set up to find potential host candidates from AllWISE.
 2. Leah Morabito's likelihood ratio host-identification code (https://github.com/lmorabit/likelihood_ratio).
 
@@ -110,7 +110,7 @@ z_survey | Survey redshift was obtained from
 
 ## Code Dependencies
 
-The following python packages are required to run this code (version used in development):
+This code was developed using Python 3.10 and the following packages are required to run (version used in development):
 * applpy (2.1.0)
 * argparse (1.1)
 * astropy (5.0.2)

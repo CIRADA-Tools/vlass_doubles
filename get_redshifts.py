@@ -2,8 +2,6 @@
 
 import numpy as np, sys, warnings, argparse, os
 from distutils.util import strtobool
-sys.path.append('/Users/yjangordon/Documents/science/science_code/astro_tools/')
-from astro_tools import *
 from astropy import units as u
 from astroquery.vizier import Vizier
 from astroquery.utils.tap.core import TapPlus
@@ -288,7 +286,7 @@ def cds_xmatch(data, racol='RAJ2000', decol='DEJ2000', maxsep=1*u.arcsec,
     xm.TIMEOUT = timeout
     
     xmatch = xm.query(cat1=data, cat2=cat2, max_distance=maxsep,
-                          colRA1=racol, colDec1=decol)
+                      colRA1=racol, colDec1=decol)
     
     ###reduce to only spec data (and unique)
     outcols = [namecol] + catcols
@@ -298,6 +296,11 @@ def cds_xmatch(data, racol='RAJ2000', decol='DEJ2000', maxsep=1*u.arcsec,
     xmatch.sort('angDist')
     
     if len(xmatch)>0:
+        maxad = np.round(np.max(xmatch['angDist']), 3)
+        print(f'max angDist = {maxad}')
+        print(f'max search rad = {maxsep}')
+        print('')
+        
         xmatch = unique(xmatch, namecol) ###ensures no duplicates
     
     ###add in sep col units
