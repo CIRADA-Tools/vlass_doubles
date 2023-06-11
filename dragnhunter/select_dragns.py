@@ -415,7 +415,9 @@ def select_sources_and_find_hosts(pairs, components,
                                minflux=minflux)
     
     ###add in flag column
-    dflag_filt = ((dragns['Lobe_flux_ratio']<0.1) | (dragns['Lobe_flux_ratio']>10))
+    dflag_filt = ((dragns['Lobe_flux_ratio']<0.1)
+                  | (dragns['Lobe_flux_ratio']>10)
+                  | (dragns['LAS']/dragns['E_LAS']<20))
     dragns = add_source_flag(data=dragns, bad_filter=dflag_filt,
                              colname='Source_flag',
                              description='Source quality flag (>0 is suspect)')

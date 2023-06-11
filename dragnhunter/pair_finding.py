@@ -20,6 +20,14 @@ import time
 start_time = time.time()
 ########################################
 
+##############################################################################
+###parameters
+
+default_units = {'flux_unit': u.mJy,
+                 'pos_unit': u.deg,
+                 'ang_unit': u.arcsec,
+                 'pa_unit': u.deg}
+
 
 ##############################################################################
 ###functions
@@ -467,10 +475,46 @@ def preprocess_cat(catfile, flux_col, flux_min, size_col, size_min, fileformat='
     cdata = alldata[(alldata[flux_col]>=flux_min) & (alldata[size_col]<size_min)]
     
     return(ldata, cdata)
+    
+
+def add_units(data, fluxcols, poscols, angcols, pacols,
+              unit_defaults=default_units):
+    'add units if not provided'
+    datacols = data.colnames
+    for col in fluxcols:
+        if col in datacols:
+            if data[col].unit is None:
+                col_unit = unit_defaults['flux_unit']
+                print(f"Warning: column '{col}' has no unit, assuming unit is {col_unit}")
+                data[col].unit = col_unit
+    
+    for col in poscols:
+        if col in datacols:
+            if data[col].unit is None:
+                col_unit = unit_defaults['pos_unit']
+                print(f"Warning: column '{col}' has no unit, assuming unit is {col_unit}")
+                data[col].unit = col_unit
+    
+    for col in angcols:
+        if col in datacols:
+            if data[col].unit is None:
+                col_unit = unit_defaults['ang_unit']
+                print(f"Warning: column '{col}' has no unit, assuming unit is {col_unit}")
+                data[col].unit = col_unit
+    
+    for col in pacols:
+        if col in datacols:
+            if data[col].unit is None:
+                col_unit = unit_defaults['pa_unit']
+                print(f"Warning: column '{col}' has no unit, assuming unit is {col_unit}")
+                data[col].unit = col_unit
+    
+    return
 
 
 def find_doubles(catfile, config_file, write_file=True, search_rad=30*u.arcsec,
-                 outdir='outfiles', return_pairs=False, return_candcores=False):
+                 outdir='outfiles', return_pairs=False, return_candcores=False,
+                 unit_defaults=default_units):
     'find pairs and flag candidate dragns'
     
     ##extract config params
@@ -485,6 +529,25 @@ def find_doubles(catfile, config_file, write_file=True, search_rad=30*u.arcsec,
     
     ###remove nonessential columns from core data
     coredata = coredata[list(coldict.values())]
+    
+    ###add units if not included in data
+    add_units(data=coredata,
+              fluxcols=[coldict['peak'], coldict['epeak'],
+                        coldict['total'], coldict['etot']],
+              poscols=[coldict['ra'], coldict['dec'],
+                        coldict['era'], coldict['edec']],
+              angcols=[coldict['maj'], coldict['emaj'],
+                        coldict['min'], coldict['emin']],
+              pacols=[coldict['pa'], coldict['epa']])
+    add_units(data=catdata,
+              fluxcols=[coldict['peak'], coldict['epeak'],
+                        coldict['total'], coldict['etot']],
+              poscols=[coldict['ra'], coldict['dec'],
+                        coldict['era'], coldict['edec']],
+              angcols=[coldict['maj'], coldict['emaj'],
+                        coldict['min'], coldict['emin']],
+              pacols=[coldict['pa'], coldict['epa']])
+
     
     ###find pairs and flag (need to add flagging)
     pairs = find_pairs(data=catdata, columndict=coldict)
